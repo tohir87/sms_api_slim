@@ -4,8 +4,8 @@ require_once "vendor/autoload.php";
 
 function getDB() {
     $dbhost = "localhost";
-    $dbuser = "root";
-    $dbpass = "root";
+    $dbuser = "smshitne_tundsm"; //"root";
+    $dbpass = "smsTunde?#123_olajire"; //"root";
     $dbname = "smshitne_smshit";
 
     $mysql_conn_string = "mysql:host=$dbhost;dbname=$dbname";
@@ -51,7 +51,19 @@ $app = new \Slim\Slim(array(
 
 $app->get('/', function() use($app) {
     getDB();
-    echo "Welcome to SMSHit API v1.0";
+    echo "Welcome to SMSHit API v1.0<br><br> "
+    . "<b>Simple Documentation</b> <br>"
+            . "Use <b><i>http://api.smshit.net/index.php/push_sms/:account_key/:message/:destination/:sender_id</i></b> to send SMS<br><br>"
+            . " <b><u>Parameters</u></b><br>"
+            . "<ul>"
+            . "<li>account_key: - you account key on smshit"
+            . "<li>message: - Message to be sent"
+            . "<li>destination: - Receiver's phone number"
+            . "<li>sender_id: - Sender ID"
+            . "</ul>"
+            . "<p style='color:red'><b>Note: All parameters must be url encoded</b></p>"
+            
+            . "Example: http://api.smshit.net/index.php/push_sms/a4f85b620e/Welcome%20to%20SMSHit/08037816587/Testing" ;
 });
 
 // add new Route 
@@ -100,8 +112,7 @@ $app->get("/push_sms/:acct_key/:message/:recipient/:sname", function($acct_key, 
                         . "&s=" . urlencode($senderId)
                         . "&t=1";
 
-                //$response = do_send($url);
-                $response = 'OK';
+                $response = do_send($url);
 
 
                 if ($response !== "NOK") {
@@ -146,7 +157,11 @@ $app->get("/push_sms/:acct_key/:message/:recipient/:sname", function($acct_key, 
                 ));
             }
         } else {
-            throw new PDOException('No records found.');
+            echo json_encode(array(
+                    "status" => false,
+                    "message" => "Invalid account key"
+                ));
+            //throw new PDOException('No records found.');
         }
     } catch (Exception $ex) {
         $app->response()->setStatus(404);

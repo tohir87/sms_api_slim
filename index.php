@@ -77,13 +77,24 @@ $app->get("/push_sms/:acct_key/:message/:recipient/:sname", function($acct_key, 
     $app = \Slim\Slim::getInstance();
     $app->response()->header("Content-Type", "application/json");
 
-
     $username = "tundeaminu@gmail.com";
     $password = "olatunde2711";
     $gateway = "http://www.v2nmobile.co.uk/api/httpsms.php?";
 
-//    $senderId = $sname;
-    $recipient = checkPhoneNumber($recipient);
+    $phoneNumber = '';
+    $splitNumbers = explode(":", $recipient);
+    $recipientCount = count($splitNumbers);
+    
+    if ((int) $recipientCount > 1){
+        foreach($splitNumbers as $phone){
+            $phoneNumber .= checkPhoneNumber($phone) . ":";
+        }
+        $phoneNumber = rtrim($phoneNumber, ":");
+    }else{
+        $phoneNumber = checkPhoneNumber($recipient);
+    }
+    
+    
 
     try {
         $db = getDB();
@@ -95,9 +106,13 @@ $app->get("/push_sms/:acct_key/:message/:recipient/:sname", function($acct_key, 
         $sth->execute();
 
         $user = $sth->fetch(PDO::FETCH_OBJ);
+        
+        // Compute SMS count
+        $sms_count = strlen($message)/160;
+        $sms_count = $sms_count > intval($sms_count) ? intval($sms_count + 1) * $recipientCount : $sms_count * $recipientCount;
 
         if ($user) {
-            if ((int) $user->credit > 0) {
+            if ((int) $user->credit > $sms_count) {
 
                 $status = 'Pending';
                 $time = date('h:i:s');
@@ -108,7 +123,7 @@ $app->get("/push_sms/:acct_key/:message/:recipient/:sname", function($acct_key, 
                 $url = $gateway . "u=" . urlencode($username)
                         . "&p=" . urlencode($password)
                         . "&m=" . urlencode($message)
-                        . "&r=" . urlencode($recipient)
+                        . "&r=" . urlencode($phoneNumber)
                         . "&s=" . urlencode($senderId)
                         . "&t=1";
 
@@ -133,11 +148,10 @@ $app->get("/push_sms/:acct_key/:message/:recipient/:sname", function($acct_key, 
                 // log inside outbox
                 try {
                      $db = getDB();
-                $stmt = $db->prepare("INSERT INTO smsoutbox (pnumber, sname, date, message, status, sid, smscount, country, time, ampm, mid) VALUES ($recipient, '$senderId', $today_date, '$message', '$status', $user->id, 1, 'NG', '$time', '$ampm', null)");
+                $stmt = $db->prepare("INSERT INTO smsoutbox (pnumber, sname, date, message, status, sid, smscount, country, time, ampm, mid) VALUES ($recipient, '$senderId', $today_date, '$message', '$status', $user->id, 1, 'NG', '$time', '$ampm', null)"); 
                     $stmt->execute();
                     
                     // deduct SMS
-                    //$sql = "UPDATE users SET credit=credit-1 WHERE id=:user_id";
                     $sql = $db->prepare("UPDATE users SET credit=credit-1 WHERE id=:user_id");
                     $sql->bindParam(':user_id', $user->id, PDO::PARAM_INT);
                     $sql->execute();

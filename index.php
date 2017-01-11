@@ -1,13 +1,14 @@
 <?php
 
 require_once "vendor/autoload.php";
+header("Access-Control-Allow-Origin: *");
 
 function getDB() {
     $dbhost = "localhost";
-//    $dbuser = "smshitne_tundsm"; //"root";
-//    $dbpass = "smsTunde?#123_olajire"; //"root";
-    $dbuser = "root";
-    $dbpass = "root";
+    $dbuser = "smshitne_tundsm"; //"root";
+    $dbpass = "smsTunde?#123_olajire"; //"root";
+//    $dbuser = "root";
+//    $dbpass = "root";
     $dbname = "smshitne_smshit";
 
     $mysql_conn_string = "mysql:host=$dbhost;dbname=$dbname";
@@ -53,7 +54,7 @@ $app = new \Slim\Slim(array(
 
 $app->get('/', function() use($app) {
     getDB();
-    echo "Welcome to SMSHit API v1.0<br><br> "
+    echo "<h2>Welcome to SMSHit API v1.0</h2> "
     . "<b>Simple Documentation</b> <br>"
     . "Use <b><i>http://api.smshit.net/index.php/push_sms/:account_key/:message/:destination/:sender_id</i></b> to send SMS<br><br>"
     . " <b><u>Parameters</u></b><br>"
@@ -64,7 +65,8 @@ $app->get('/', function() use($app) {
     . "<li>sender_id: - Sender ID"
     . "</ul>"
     . "<p style='color:red'><b>Note: All parameters must be url encoded</b></p>"
-    . "Example: http://api.smshit.net/index.php/push_sms/a4f85b620e/Welcome%20to%20SMSHit/08037816587/Testing";
+    . "Example: http://api.smshit.net/index.php/push_sms/a4f85b620e/Welcome%20to%20SMSHit/08037816387/Testing</p> To send to multiple receipient at once, use the following format <br>"
+            . "Example: http://api.smshit.net/index.php/push_sms/a4f85b620e/Welcome%20to%20SMSHit/<b>08037816387:08022564532:09078654312</b>/Testing";
 });
 
 // add new Route 
@@ -143,29 +145,33 @@ $app->get("/push_sms/:acct_key/:message/:recipient/:sname", function($acct_key, 
                 $mid = rand(10, 20000);
 
                 // build api url
-                $url = $gateway . "u=" . urlencode($username)
-                        . "&p=" . urlencode($password)
-                        . "&m=" . urlencode($message)
-                        . "&r=" . urlencode($phoneNumber)
-                        . "&s=" . urlencode($senderId)
-                        . "&t=1";
+                // $url = $gateway . "u=" . urlencode($username)
+//                         . "&p=" . urlencode($password)
+//                         . "&m=" . urlencode($message)
+//                         . "&r=" . urlencode($phoneNumber)
+//                         . "&s=" . urlencode($senderId)
+//                         . "&t=1";
+// 
+//                 $response = do_send($url);
 
-                $response = do_send($url);
-
-
-                if ($response !== "NOK") {
-                    $status = 'Delivered';
-                    $respnse_str = json_encode(array(
+				$respnse_str = json_encode(array(
                         "status" => true,
                         "message" => "Message sent successfully"
                     ));
-                } else {
 
-                    $respnse_str = json_encode(array(
-                        "status" => false,
-                        "message" => "Message in queue and will be sent shortly"
-                    ));
-                }
+                // if ($response !== "NOK") {
+//                     $status = 'Delivered';
+//                     $respnse_str = json_encode(array(
+//                         "status" => true,
+//                         "message" => "Message sent successfully"
+//                     ));
+//                 } else {
+// 
+//                     $respnse_str = json_encode(array(
+//                         "status" => false,
+//                         "message" => "Message in queue and will be sent shortly"
+//                     ));
+//                 }
 
 
                 // log inside outbox
@@ -173,11 +179,11 @@ $app->get("/push_sms/:acct_key/:message/:recipient/:sname", function($acct_key, 
                     $db = getDB();
                     if ((int) $recipientCount > 1) {
                         foreach ($splitNumbers as $phone) {
-                            $stmt = $db->prepare("INSERT INTO smsoutbox (pnumber, sname, date, message, status, sid, smscount, country, time, ampm, mid) VALUES ($phone, '$senderId', '$today_date', '$message', '$status', $user->id, 1, 'NG', '$time', '$ampm', '$mid')");
+                            $stmt = $db->prepare("INSERT INTO smsoutbox (pnumber, sname, date, message, status, sid, smscount, country, time, ampm) VALUES ($phone, '$senderId', '$today_date', '$message', '$status', $user->id, 1, 'NG', '$time', '$ampm')");
                             $stmt->execute();
                         }
                     } else {
-                        $stmt = $db->prepare("INSERT INTO smsoutbox (pnumber, sname, date, message, status, sid, smscount, country, time, ampm, mid) VALUES ($recipient, '$senderId', '$today_date', '$message', '$status', $user->id, 1, 'NG', '$time', '$ampm', '$mid')");
+                        $stmt = $db->prepare("INSERT INTO smsoutbox (pnumber, sname, date, message, status, sid, smscount, country, time, ampm) VALUES ($recipient, '$senderId', '$today_date', '$message', '$status', $user->id, 1, 'NG', '$time', '$ampm')");
                         $stmt->execute();
                     }
 

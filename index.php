@@ -5,11 +5,11 @@ header("Access-Control-Allow-Origin: *");
 
 function getDB() {
     $dbhost = "localhost";
-    $dbuser = "smshitne_tundsm"; //"root";
-    $dbpass = "smsTunde?#123_olajire"; //"root";
-//    $dbuser = "root";
-//    $dbpass = "root";
-    $dbname = "smshitne_smshit";
+	$dbuser = "smshit_smshitne";
+    $dbpass = "smsTunde?#123_olajire";
+   //  $dbuser = "root";
+//     $dbpass = "root";
+    $dbname = "smshit_smshit";
 
     $mysql_conn_string = "mysql:host=$dbhost;dbname=$dbname";
     $dbConnection = new PDO($mysql_conn_string, $dbuser, $dbpass);
@@ -76,13 +76,11 @@ $app->get("/", function () {
 
 // Push sms route
 $app->get("/push_sms/:acct_key/:message/:recipient/:sname", function($acct_key, $message, $recipient, $senderId) {
-
+	
     $app = \Slim\Slim::getInstance();
     $app->response()->header("Content-Type", "application/json");
 
-    $username = "tundeaminu@gmail.com";
-    $password = "olatunde2711";
-    $gateway = "http://www.v2nmobile.co.uk/api/httpsms.php?";
+   
 
     $phoneNumber = '';
     $splitNumbers = explode(":", $recipient);
@@ -144,47 +142,23 @@ $app->get("/push_sms/:acct_key/:message/:recipient/:sname", function($acct_key, 
                 $today_date = date('Y-m-d');
                 $mid = rand(10, 20000);
 
-                // build api url
-                // $url = $gateway . "u=" . urlencode($username)
-//                         . "&p=" . urlencode($password)
-//                         . "&m=" . urlencode($message)
-//                         . "&r=" . urlencode($phoneNumber)
-//                         . "&s=" . urlencode($senderId)
-//                         . "&t=1";
-// 
-//                 $response = do_send($url);
-
 				$respnse_str = json_encode(array(
                         "status" => true,
                         "message" => "Message sent successfully"
                     ));
 
-                // if ($response !== "NOK") {
-//                     $status = 'Delivered';
-//                     $respnse_str = json_encode(array(
-//                         "status" => true,
-//                         "message" => "Message sent successfully"
-//                     ));
-//                 } else {
-// 
-//                     $respnse_str = json_encode(array(
-//                         "status" => false,
-//                         "message" => "Message in queue and will be sent shortly"
-//                     ));
-//                 }
 
 
                 // log inside outbox
                 try {
                     $db = getDB();
-                    if ((int) $recipientCount > 1) {
+                    $splitNumbers = explode(":", $phoneNumber);
+                     $recipientCount = count($splitNumbers);
+                    if ((int) $recipientCount > 0) {
                         foreach ($splitNumbers as $phone) {
                             $stmt = $db->prepare("INSERT INTO smsoutbox (pnumber, sname, date, message, status, sid, smscount, country, time, ampm) VALUES ($phone, '$senderId', '$today_date', '$message', '$status', $user->id, 1, 'NG', '$time', '$ampm')");
                             $stmt->execute();
                         }
-                    } else {
-                        $stmt = $db->prepare("INSERT INTO smsoutbox (pnumber, sname, date, message, status, sid, smscount, country, time, ampm) VALUES ($recipient, '$senderId', '$today_date', '$message', '$status', $user->id, 1, 'NG', '$time', '$ampm')");
-                        $stmt->execute();
                     }
 
                     // deduct SMS
@@ -213,7 +187,7 @@ $app->get("/push_sms/:acct_key/:message/:recipient/:sname", function($acct_key, 
             //throw new PDOException('No records found.');
         }
     } catch (Exception $ex) {
-        $app->response()->setStatus(404);
+        //$app->response()->withStatus(404);
         echo '{"error":{"text":' . $ex->getMessage() . '}}';
     }
 });
